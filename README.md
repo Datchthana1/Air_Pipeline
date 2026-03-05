@@ -71,6 +71,7 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
                        │  - cloud, sea_level        │
                        │  - temp_min, temp_max      │
                        │  - pm25                    │
+                       │  - aqi                     │
                        │  - area, station_name      │
                        └───────────────────────────┘
 ```
