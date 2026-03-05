@@ -48,6 +48,7 @@ def combine_data(LAT, LON, OW_API, STATION_ID):
         "TempMin": requests_api_OW_data['main']['temp_min'],
         "TempMax": requests_api_OW_data['main']['temp_max'],
         "PM2.5": requests_api_AIR4THAI_data['AQILast']['PM25']['value'],
+        "AQI": requests_api_AIR4THAI_data['AQILast']['AQI']['aqi'],
         "Area": requests_api_AIR4THAI_data['areaEN'],
         "Station_Name": requests_api_AIR4THAI_data['nameEN'],
     }
