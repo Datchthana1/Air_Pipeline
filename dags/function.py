@@ -72,7 +72,7 @@ def insert_data(data: dict):
         "temp_min":        data['TempMin'],
         "temp_max":        data['TempMax'],
         "pm25":            data['PM2.5'],
-        "AQI":            data['AQI'],
+        "AQI":             data['AQI'],
         "area":            data['Area'],
         "station_name":    data['Station_Name'],
     }).execute()
