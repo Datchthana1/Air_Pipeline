@@ -1,0 +1,17 @@
+# Environment variables - NEVER commit these
+assets/.env
+.env
+*.env
+
+# Airflow logs
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Docker
+.docker/
