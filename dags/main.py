@@ -31,7 +31,7 @@ def insert_weather(**context):
     return insert_data(data)
 
 with DAG(
-    dag_id='air_pipeline_daily',
+    dag_id='air_pipeline_hourly',
     default_args=default_args,
     schedule_interval='0 * * * *',
     catchup=False,

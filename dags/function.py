@@ -26,10 +26,15 @@ def requests_api_OW(lat, lon, API_key):
     return response_json
 
 def requests_api_AIR4THAI(station_id):
-    response = re.get('http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', timeout=30)
-    response_json = response.json()
-    stations = [s for s in response_json['stations'] if s['stationID'] == station_id]
-    return stations[0] if stations else None
+    try:
+        response = re.get('http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', timeout=30)
+        if response.status_code != 200:
+            return None
+        response_json = response.json()
+        stations = [s for s in response_json['stations'] if s['stationID'] == station_id]
+        return stations[0] if stations else None
+    except Exception:
+        return None
 
 def combine_data(LAT, LON, OW_API, STATION_ID):
     requests_api_OW_data = requests_api_OW(LAT, LON, OW_API)
@@ -47,10 +52,10 @@ def combine_data(LAT, LON, OW_API, STATION_ID):
         "Sea_level": requests_api_OW_data['main'].get('sea_level'),
         "TempMin": requests_api_OW_data['main']['temp_min'],
         "TempMax": requests_api_OW_data['main']['temp_max'],
-        "PM2.5": requests_api_AIR4THAI_data['AQILast']['PM25']['value'],
-        "AQI": requests_api_AIR4THAI_data['AQILast']['AQI']['aqi'],
-        "Area": requests_api_AIR4THAI_data['areaEN'],
-        "Station_Name": requests_api_AIR4THAI_data['nameEN'],
+        "PM2.5": requests_api_AIR4THAI_data['AQILast']['PM25']['value'] if requests_api_AIR4THAI_data else None,
+        "AQI": requests_api_AIR4THAI_data['AQILast']['AQI']['aqi'] if requests_api_AIR4THAI_data else None,
+        "Area": requests_api_AIR4THAI_data['areaEN'] if requests_api_AIR4THAI_data else None,
+        "Station_Name": requests_api_AIR4THAI_data['nameEN'] if requests_api_AIR4THAI_data else None,
     }
     return combined_data
 
