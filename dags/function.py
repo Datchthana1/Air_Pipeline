@@ -26,7 +26,7 @@ def requests_api_OW(lat, lon, API_key):
     return response_json
 
 def requests_api_AIR4THAI(station_id):
-    response = re.get('http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', timeout=10)
+    response = re.get('http://air4thai.pcd.go.th/services/getNewAQI_JSON.php', timeout=30)
     response_json = response.json()
     stations = [s for s in response_json['stations'] if s['stationID'] == station_id]
     return stations[0] if stations else None
