@@ -177,7 +177,10 @@ def insert_daily_data():
         record["datetime"] = str(record["datetime"])[:10]
         for col in int_columns:
             if col in record and record[col] is not None:
-                record[col] = int(round(record[col]))
+                try:
+                    record[col] = int(round(float(record[col])))
+                except (ValueError, TypeError):
+                    record[col] = None
 
         client.table("weather_data_daily").upsert(
             record, on_conflict="datetime"
