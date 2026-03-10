@@ -171,10 +171,14 @@ def insert_daily_data():
             "station_name": lambda x: x.mode()[0] if not x.mode().empty else None,
         }
     )
-
+    int_columns = ["AQI", "pm25", "humidity", "cloud", "visibility"]
     records = df_daily.reset_index().to_dict(orient="records")
     for record in records:
         record["datetime"] = str(record["datetime"])[:10]
+        for col in int_columns:
+            if col in record and record[col] is not None:
+                record[col] = int(round(record[col]))
+
         client.table("weather_data_daily").upsert(
             record, on_conflict="datetime"
         ).execute()

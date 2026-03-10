@@ -14,7 +14,7 @@ default_args = {
     "owner": "air_pipeline",
     "depends_on_past": False,
     "start_date": pendulum.datetime(2024, 6, 1, tz=local_tz),
-    "retries": 3,
+    "retries": 1,
     "retry_delay": timedelta(minutes=2),
 }
 
