@@ -1,7 +1,6 @@
 import requests as re
 import urllib3
 import os
-from pprint import pprint
 from supabase import create_client
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
@@ -17,12 +16,19 @@ STATION_ID=os.getenv('AIR4THAI_STATIONID')
 SUPABASE_URL=os.getenv('SUPABASE_URL')
 SUPABASE_KEY=os.getenv('SUPABASE_KEY')
 
+TZ_BKK = timezone(timedelta(hours=7))
+
 def requests_api_OW(lat, lon, API_key):
-    response = re.get(f'https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_key}&units=metric')
+    response = re.get(
+        f'https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_key}&units=metric'
+    )
+    response.raise_for_status()
     response_json = response.json()
-    response_json['dt'] = datetime.fromtimestamp(response_json['dt'], tz=timezone(timedelta(hours=7))).isoformat()
-    response_json['sys']['sunrise'] = datetime.fromtimestamp(response_json['sys']['sunrise']).isoformat()
-    response_json['sys']['sunset'] = datetime.fromtimestamp(response_json['sys']['sunset']).isoformat()
+    
+    response_json['dt'] = datetime.fromtimestamp(response_json['dt'], tz=TZ_BKK).isoformat()
+    response_json['sys']['sunrise'] = datetime.fromtimestamp(response_json['sys']['sunrise'], tz=TZ_BKK).isoformat()
+    response_json['sys']['sunset'] = datetime.fromtimestamp(response_json['sys']['sunset'], tz=TZ_BKK).isoformat()
+    
     return response_json
 
 def requests_api_AIR4THAI(station_id):
@@ -43,7 +49,6 @@ def combine_data(LAT, LON, OW_API, STATION_ID):
         "Datetime": requests_api_OW_data['dt'],
         "Temperature": requests_api_OW_data['main']['temp'],
         "Humidity": requests_api_OW_data['main']['humidity'],
-        "Wind Speed": requests_api_OW_data['wind']['speed'],
         "Pressure": requests_api_OW_data['main']['pressure'],
         "Visibility": requests_api_OW_data.get('visibility'),
         "Cloud": requests_api_OW_data['weather'][0]['description'] if requests_api_OW_data.get('weather') else None,
@@ -59,11 +64,18 @@ def combine_data(LAT, LON, OW_API, STATION_ID):
     }
     return combined_data
 
-def Connect_to_database():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+_supabase_client: Client | None = None
+
+def get_supabase_client() -> Client:
+    global _supabase_client
+    if _supabase_client is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise ValueError("SUPABASE_URL or SUPABASE_KEY is not set")
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _supabase_client
 
 def insert_data(data: dict):
-    client = Connect_to_database()
+    client = get_supabase_client()
     client.table('weather_data').insert({
         "datetime":        data['Datetime'],
         "temperature":     data['Temperature'],
