@@ -23,7 +23,7 @@ def requests_api_OW(lat, lon, API_key):
         response = re.get(
             f'https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_key}&units=metric'
         )
-        if lat & lon is None:
+        if lat is None or lon is None:
             raise ValueError("Latitude and Longitude must be provided")
         response.raise_for_status()
         response_json = response.json()
