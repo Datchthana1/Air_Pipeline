@@ -1,7 +1,7 @@
 import requests as re
 import urllib3
 import os
-from supabase import create_client
+from supabase import create_client, Client
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
