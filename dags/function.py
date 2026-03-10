@@ -19,17 +19,20 @@ SUPABASE_KEY=os.getenv('SUPABASE_KEY')
 TZ_BKK = timezone(timedelta(hours=7))
 
 def requests_api_OW(lat, lon, API_key):
-    response = re.get(
-        f'https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_key}&units=metric'
-    )
-    response.raise_for_status()
-    response_json = response.json()
-    
-    response_json['dt'] = datetime.fromtimestamp(response_json['dt'], tz=TZ_BKK).isoformat()
-    response_json['sys']['sunrise'] = datetime.fromtimestamp(response_json['sys']['sunrise'], tz=TZ_BKK).isoformat()
-    response_json['sys']['sunset'] = datetime.fromtimestamp(response_json['sys']['sunset'], tz=TZ_BKK).isoformat()
-    
-    return response_json
+    try:
+        response = re.get(
+            f'https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_key}&units=metric'
+        )
+        if lat & lon is None:
+            raise ValueError("Latitude and Longitude must be provided")
+        response.raise_for_status()
+        response_json = response.json()
+        response_json['dt'] = datetime.fromtimestamp(response_json['dt'], tz=TZ_BKK).isoformat()
+        response_json['sys']['sunrise'] = datetime.fromtimestamp(response_json['sys']['sunrise'], tz=TZ_BKK).isoformat()
+        response_json['sys']['sunset'] = datetime.fromtimestamp(response_json['sys']['sunset'], tz=TZ_BKK).isoformat()
+        return response_json
+    except Exception as e:
+        raise ValueError(f"Error fetching data from OpenWeather API: {e}")
 
 def requests_api_AIR4THAI(station_id):
     try:
