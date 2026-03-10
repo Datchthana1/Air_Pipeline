@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.timetables.interval import CronDataIntervalTimetable
 from airflow.models.param import Param
 from datetime import timedelta
 from function import combine_data, insert_data, LAT, LON, OW_API, STATION_ID
@@ -9,12 +10,13 @@ import pendulum
 local_tz = pendulum.timezone("Asia/Bangkok")
 
 default_args = {
-    'owner': 'air_pipeline',
-    'depends_on_past': False,
-    'start_date': pendulum.datetime(2024, 6, 1, tz=local_tz),
-    'retries': 3,
-    'retry_delay': timedelta(minutes=2),
+    "owner": "air_pipeline",
+    "depends_on_past": False,
+    "start_date": pendulum.datetime(2024, 6, 1, tz=local_tz),
+    "retries": 3,
+    "retry_delay": timedelta(minutes=2),
 }
+
 
 def fetch_weather(**context):
     params = context["params"]
@@ -26,29 +28,33 @@ def fetch_weather(**context):
     )
     return data
 
+
 def insert_weather(**context):
-    data = context['ti'].xcom_pull(task_ids='fetch_weather_data')
+    data = context["ti"].xcom_pull(task_ids="fetch_weather_data")
     return insert_data(data)
 
+
 with DAG(
-    dag_id='air_pipeline_hourly',
+    dag_id="air_pipeline_hourly",
     default_args=default_args,
-    schedule_interval='0 * * * *',
+    schedule=CronDataIntervalTimetable(
+        cron="0 * * * *", timezone=pendulum.timezone("Asia/Bangkok")
+    ),
     catchup=False,
     params={
         "lat": Param(default=LAT, type="string"),
         "lon": Param(default=LON, type="string"),
         "station_id": Param(default=STATION_ID, type="string"),
-    }
+    },
 ) as dag:
 
     task_fetch = PythonOperator(
-        task_id='fetch_weather_data',
+        task_id="fetch_weather_data",
         python_callable=fetch_weather,
     )
 
     task_process = PythonOperator(
-        task_id='insert_weather_data',
+        task_id="insert_weather_data",
         python_callable=insert_weather,
     )
 
