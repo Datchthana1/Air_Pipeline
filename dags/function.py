@@ -3,8 +3,9 @@ import urllib3
 import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
+import pandas as pd
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 load_dotenv(dotenv_path=Path(__file__).parent.parent / "assets" / ".env")
@@ -109,9 +110,9 @@ def get_supabase_client() -> Client:
     return _supabase_client
 
 
-def insert_data(data: dict):
+def insert_data(data: dict, table_name: str = "weather_data"):
     client = get_supabase_client()
-    client.table("weather_data").insert(
+    client.table(table_name).insert(
         {
             "datetime": data["Datetime"],
             "temperature": data["Temperature"],
@@ -135,3 +136,47 @@ def insert_data(data: dict):
         "message": "Data inserted successfully",
         "status_code": 200,
     }
+
+
+def insert_daily_data():
+    client = get_supabase_client()
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+
+    response = (
+        client.table("weather_data")
+        .select("*")
+        .gte("datetime", f"{yesterday}T00:01:00+07:00")
+        .lte("datetime", f"{yesterday}T23:59:59+07:00")
+        .execute()
+    )
+    df = pd.DataFrame(response.data)
+    df["datetime"] = pd.to_datetime(df["datetime"])
+    df.set_index("datetime", inplace=True)
+
+    df_daily = df.resample("D").agg(
+        {
+            "temperature": "mean",
+            "humidity": "mean",
+            "wind_speed": "mean",
+            "pressure": "mean",
+            "visibility": "mean",
+            "cloud": lambda x: x.mode()[0] if not x.mode().empty else None,
+            "wind_direction": lambda x: x.mode()[0] if not x.mode().empty else None,
+            "sea_level": "mean",
+            "temp_min": "min",
+            "temp_max": "max",
+            "pm25": "mean",
+            "AQI": "mean",
+            "area": lambda x: x.mode()[0] if not x.mode().empty else None,
+            "station_name": lambda x: x.mode()[0] if not x.mode().empty else None,
+        }
+    )
+
+    records = df_daily.reset_index().to_dict(orient="records")
+    for record in records:
+        record["datetime"] = str(record["datetime"])[:10]
+        client.table("weather_data_daily").upsert(
+            record, on_conflict="datetime"
+        ).execute()
+
+    return {"status": "success", "inserted": len(records)}

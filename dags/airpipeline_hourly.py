@@ -3,8 +3,14 @@ from airflow.operators.python import PythonOperator
 from airflow.timetables.interval import CronDataIntervalTimetable
 from airflow.models.param import Param
 from datetime import timedelta
-from function import combine_data, insert_data, LAT, LON, OW_API, STATION_ID
-import os
+from function import (
+    combine_data,
+    insert_data,
+    LAT,
+    LON,
+    OW_API,
+    STATION_ID,
+)
 import pendulum
 
 local_tz = pendulum.timezone("Asia/Bangkok")
@@ -31,7 +37,7 @@ def fetch_weather(**context):
 
 def insert_weather(**context):
     data = context["ti"].xcom_pull(task_ids="fetch_weather_data")
-    return insert_data(data)
+    return insert_data(data, "weather_data")
 
 
 with DAG(
