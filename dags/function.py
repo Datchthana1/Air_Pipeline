@@ -138,7 +138,7 @@ def insert_data(data: dict, table_name: str = "weather_data"):
     }
 
 
-def insert_daily_data():
+def process_daily_data():
     client = get_supabase_client()
     yesterday = (date.today() - timedelta(days=1)).isoformat()
 
@@ -149,8 +149,14 @@ def insert_daily_data():
         .lte("datetime", f"{yesterday}T23:59:59+07:00")
         .execute()
     )
+
+    if not response.data:
+        return []
+
     df = pd.DataFrame(response.data)
-    df["datetime"] = pd.to_datetime(df["datetime"])
+    df["datetime"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert(
+        "Asia/Bangkok"
+    )
     df.set_index("datetime", inplace=True)
 
     df_daily = df.resample("D").agg(
@@ -171,19 +177,45 @@ def insert_daily_data():
             "station_name": lambda x: x.mode()[0] if not x.mode().empty else None,
         }
     )
-    int_columns = ["AQI", "pm25", "humidity", "cloud", "visibility"]
+
     records = df_daily.reset_index().to_dict(orient="records")
-    for record in records:
-        record["datetime"] = str(record["datetime"])[:10]
-        for col in int_columns:
-            if col in record and record[col] is not None:
-                try:
-                    record[col] = int(round(float(record[col])))
-                except (ValueError, TypeError):
-                    record[col] = None
+    return records
 
-        client.table("weather_data_daily").upsert(
-            record, on_conflict="datetime"
-        ).execute()
 
-    return {"status": "success", "inserted": len(records)}
+def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
+    if not records:
+        return None
+    client = get_supabase_client()
+
+    def to_int(val):
+        return int(round(val)) if val is not None and not pd.isna(val) else None
+
+    def to_float(val):
+        return float(val) if val is not None and not pd.isna(val) else None
+
+    rows = [
+        {
+            "datetime": (
+                r["datetime"].isoformat()
+                if hasattr(r["datetime"], "isoformat")
+                else str(r["datetime"])
+            ),
+            "temperature": to_float(r["temperature"]),
+            "humidity": to_int(r["humidity"]),
+            "wind_speed": to_float(r["wind_speed"]),
+            "pressure": to_int(r["pressure"]),
+            "visibility": to_int(r["visibility"]),
+            "cloud": r["cloud"],
+            "wind_direction": to_int(r["wind_direction"]),
+            "sea_level": to_int(r["sea_level"]),
+            "temp_min": to_float(r["temp_min"]),
+            "temp_max": to_float(r["temp_max"]),
+            "pm25": to_float(r["pm25"]),
+            "AQI": to_int(r["AQI"]),
+            "area": r["area"],
+            "station_name": r["station_name"],
+        }
+        for r in records
+    ]
+    client.table(table_name).insert(rows).execute()
+    return {"status": "success", "rows_inserted": len(rows)}

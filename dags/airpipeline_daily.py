@@ -3,9 +3,7 @@ from airflow.operators.python import PythonOperator
 from airflow.timetables.interval import CronDataIntervalTimetable
 from airflow.models.param import Param
 from datetime import timedelta
-from function import (
-    insert_daily_data,
-)
+from function import insert_daily_data, process_daily_data
 import pendulum
 
 local_tz = pendulum.timezone("Asia/Bangkok")
@@ -15,12 +13,13 @@ default_args = {
     "depends_on_past": False,
     "start_date": pendulum.datetime(2024, 6, 1, tz=local_tz),
     "retries": 1,
-    "retry_delay": timedelta(minutes=2),
+    # "retry_delay": timedelta(minutes=2),
 }
 
 
-def process_data_daily(**context):
-    return insert_daily_data()
+def process_data_daily():
+    records = process_daily_data()
+    return insert_daily_data(records, "weather_data_daily") if records else None
 
 
 with DAG(
