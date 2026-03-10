@@ -15,7 +15,6 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
 ```
 ## System Architecture
 
-```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                          External APIs                               │
 │                                                                      │
@@ -108,7 +107,6 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
 │         air_pipeline_hourly          air_pipeline_daily              │
 │                                      reads FROM weather_data         │
 └──────────────────────────────────────────────────────────────────────┘
-```
 ```
 
 ## Getting Started
