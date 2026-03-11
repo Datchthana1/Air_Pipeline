@@ -138,15 +138,16 @@ def insert_data(data: dict, table_name: str = "weather_data"):
     }
 
 
-def process_daily_data():
+def process_daily_data(target_date: date | None = None):
     client = get_supabase_client()
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    target = target_date or (date.today() - timedelta(days=1))
+    target_str = target.isoformat()
 
     response = (
         client.table("weather_data")
         .select("*")
-        .gte("datetime", f"{yesterday}T00:01:00+07:00")
-        .lte("datetime", f"{yesterday}T23:59:59+07:00")
+        .gte("datetime", f"{target_str}T00:00:00+07:00")
+        .lt("datetime", f"{target_str}T23:59:59+07:00")  # lt แทน lte กัน edge case
         .execute()
     )
 
@@ -154,10 +155,13 @@ def process_daily_data():
         return []
 
     df = pd.DataFrame(response.data)
-    df["datetime"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert(
-        "Asia/Bangkok"
-    )
+    df["datetime"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert("Asia/Bangkok")
     df.set_index("datetime", inplace=True)
+
+    df = df[df.index.date == target]
+
+    if df.empty:
+        return []
 
     df_daily = df.resample("D").agg(
         {
