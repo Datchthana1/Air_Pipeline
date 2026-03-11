@@ -155,8 +155,9 @@ def process_daily_data(target_date: date | None = None):
         return []
 
     df = pd.DataFrame(response.data)
-    df["datetime"] = pd.to_datetime(df["created_at"], utc=True).dt.tz_convert("Asia/Bangkok")
-    df.set_index("datetime", inplace=True)
+    
+    df["created_at"] = pd.to_datetime(df["created_at"], utc=True).dt.tz_convert("Asia/Bangkok")
+    df.set_index("created_at", inplace=True)
 
     df = df[df.index.date == target]
 
@@ -182,7 +183,12 @@ def process_daily_data(target_date: date | None = None):
         }
     )
 
-    records = df_daily.reset_index().to_dict(orient="records")
+    df_daily = df_daily.reset_index()
+    df_daily = df_daily.rename(columns={"created_at": "datetime"})
+    
+    df_daily["datetime"] = df_daily["datetime"].dt.normalize().dt.tz_localize(None)
+
+    records = df_daily.to_dict(orient="records")
     return records
 
 
