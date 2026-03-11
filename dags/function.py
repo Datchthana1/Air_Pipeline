@@ -146,8 +146,8 @@ def process_daily_data(target_date: date | None = None):
     response = (
         client.table("weather_data")
         .select("*")
-        .gte("datetime", f"{target_str}T00:00:00+07:00")
-        .lt("datetime", f"{target_str}T23:59:59+07:00")  # lt แทน lte กัน edge case
+        .gte("created_at", f"{target_str}T00:00:00+07:00")
+        .lt("created_at", f"{target_str}T23:59:59+07:00")
         .execute()
     )
 
@@ -155,7 +155,7 @@ def process_daily_data(target_date: date | None = None):
         return []
 
     df = pd.DataFrame(response.data)
-    df["datetime"] = pd.to_datetime(df["datetime"], utc=True).dt.tz_convert("Asia/Bangkok")
+    df["datetime"] = pd.to_datetime(df["created_at"], utc=True).dt.tz_convert("Asia/Bangkok")
     df.set_index("datetime", inplace=True)
 
     df = df[df.index.date == target]
