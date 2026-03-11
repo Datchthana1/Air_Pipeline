@@ -223,9 +223,10 @@ def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
             "pm25": to_float(r["pm25"]),
             "AQI": to_int(r["AQI"]),
             "area": r["area"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "station_name": r["station_name"],
         }
         for r in records
     ]
-    client.table(table_name).insert(rows).execute()
+    client.table(table_name).upsert(rows, on_conflict="datetime").execute()
     return {"status": "success", "rows_inserted": len(rows)}
