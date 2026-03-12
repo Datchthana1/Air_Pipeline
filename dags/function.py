@@ -147,7 +147,7 @@ def process_daily_data(target_date: date | None = None):
         client.table("weather_data")
         .select("*")
         .gte("created_at", f"{target_str}T00:00:00+07:00")
-        .lt("created_at", f"{target_str}T23:59:59+07:00")
+        .lt("created_at", f"{(target + timedelta(days=1)).isoformat()}T00:00:00+07:00")
         .execute()
     )
 
@@ -155,8 +155,10 @@ def process_daily_data(target_date: date | None = None):
         return []
 
     df = pd.DataFrame(response.data)
-    
-    df["created_at"] = pd.to_datetime(df["created_at"], utc=True).dt.tz_convert("Asia/Bangkok")
+
+    df["created_at"] = pd.to_datetime(df["created_at"], utc=True).dt.tz_convert(
+        "Asia/Bangkok"
+    )
     df.set_index("created_at", inplace=True)
 
     df = df[df.index.date == target]
@@ -185,7 +187,7 @@ def process_daily_data(target_date: date | None = None):
 
     df_daily = df_daily.reset_index()
     df_daily = df_daily.rename(columns={"created_at": "datetime"})
-    
+
     df_daily["datetime"] = df_daily["datetime"].dt.normalize().dt.tz_localize(None)
 
     records = df_daily.to_dict(orient="records")
