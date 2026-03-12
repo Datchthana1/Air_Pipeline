@@ -140,7 +140,7 @@ def insert_data(data: dict, table_name: str = "weather_data"):
 
 def process_daily_data(target_date: date | None = None):
     client = get_supabase_client()
-    target = target_date or (date.today() - timedelta(days=1))
+    target = target_date or (date.today())
     target_str = target.isoformat()
 
     response = (
