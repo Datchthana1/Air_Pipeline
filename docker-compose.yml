@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   airflow:
     build: .
@@ -12,4 +12,5 @@ services:
       - ./logs:/opt/airflow/logs
     ports:
       - "8080:8080"
-    command: standalone
+    command: >
+      bash -c "rm -f /opt/airflow/airflow-webserver.pid && airflow standalone"
