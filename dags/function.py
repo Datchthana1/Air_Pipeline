@@ -146,8 +146,8 @@ def process_daily_data(target_date: date | None = None):
     response = (
         client.table("weather_data")
         .select("*")
-        .gte("created_at", f"{target_str}T00:00:00+07:00")
-        .lt("created_at", f"{(target + timedelta(days=1)).isoformat()}T00:00:00+07:00")
+        .gte("datetime", f"{target_str}T00:00:00+07:00")
+        .lt("datetime", f"{(target + timedelta(days=1)).isoformat()}T00:00:00+07:00")
         .execute()
     )
 
@@ -237,13 +237,11 @@ def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
     return {"status": "success", "rows_inserted": len(rows)}
 
 _PM25_BREAKPOINTS = [
-    (0.0,   12.0,   0,   50),
-    (12.1,  35.4,  51,  100),
-    (35.5,  55.4, 101,  150),
-    (55.5, 150.4, 151,  200),
-    (150.5, 250.4, 201, 300),
-    (250.5, 350.4, 301, 400),
-    (350.5, 500.4, 401, 500),
+    (0.0,   15.0,   0,   25),
+    (15.1,  25.0,  26,   50),
+    (25.1,  37.5,  51,  100),
+    (37.6,  75.0, 101,  200),
+    (75.1, 150.0, 201,  300),
 ]
 
 
