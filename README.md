@@ -1,20 +1,18 @@
 # Air Quality Pipeline
 
-Air Quality Pipeline was made for learning and doing in my rest time. The purpose is to collect data for training AI Models (Random Forest, Decision Tree, Gradient Boosting, etc.) to predict PM2.5 for the next day.
+A personal data engineering project built to collect hourly weather and air quality data for Bangkok, with the goal of training ML models (Random Forest, Decision Tree, Gradient Boosting) to predict next-day PM2.5.
 
 ## Tools
 
-- Apache Airflow
+- Apache Airflow (Dockerized, Standalone)
 - Pendulum
-- Supabase
+- Supabase (PostgreSQL Cloud)
+- Pandas
 - Dotenv
-- Pprint
 
 ## System Architecture
 
 ```
-## System Architecture
-
 ┌──────────────────────────────────────────────────────────────────────┐
 │                          External APIs                               │
 │                                                                      │
@@ -39,8 +37,8 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
 ┌──────────────────────────────────────────────────────────────────────┐
 │                    Docker Container (Airflow Standalone)             │
 │                                                                      │
-│  Volumes:  ./dags      → /opt/airflow/dags                          │
-│            ./logs      → /opt/airflow/logs                          │
+│  Volumes:  ./dags        → /opt/airflow/dags                        │
+│            ./logs        → /opt/airflow/logs                        │
 │            ./assets/.env → /opt/airflow/assets/.env                 │
 │  Port: 8080                                                          │
 │                                                                      │
@@ -66,13 +64,16 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
 │  │  │  Task 1                                                 │  │ │
 │  │  │  process_data_daily                                     │  │ │
 │  │  │                                                         │  │ │
-│  │  │  process_daily_data()   → Read yesterday's rows from    │  │ │
-│  │  │                            weather_data (24 rows)       │  │ │
+│  │  │  process_daily_data()   → Query yesterday's rows from   │  │ │
+│  │  │                            weather_data (~24 rows)      │  │ │
 │  │  │                         → Aggregate via pandas resample │  │ │
 │  │  │                           (mean / min / max / mode)     │  │ │
-│  │  │  insert_daily_data()    → INSERT 1 row →                │  │ │
+│  │  │                         → Calculate AQI from PM2.5      │  │ │
+│  │  │                           using Thailand breakpoints    │  │ │
+│  │  │  insert_daily_data()    → UPSERT 1 row →                │  │ │
 │  │  │                            weather_data_daily           │  │ │
-│  │  │  retries: 1                                             │  │ │
+│  │  │  retries: 3 (2 min)                                     │  │ │
+│  │  │  supports: manual trigger with target_date param        │  │ │
 │  │  └─────────────────────────────────────────────────────────┘  │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 │                                                                      │
@@ -98,10 +99,12 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
 │  │  - temp_min                 │  │  - temp_min (min)            │  │
 │  │  - temp_max                 │  │  - temp_max (max)            │  │
 │  │  - pm25                     │  │  - pm25 (mean)               │  │
-│  │  - aqi                      │  │  - aqi (mean)                │  │
+│  │  - AQI                      │  │  - AQI (calculated)          │  │
 │  │  - area                     │  │  - area (mode)               │  │
 │  │  - station_name             │  │  - station_name (mode)       │  │
-│  └─────────────────────────────┘  └──────────────────────────────┘  │
+│  │  - created_at               │  │  - day_of_week               │  │
+│  └─────────────────────────────┘  │  - created_at                │  │
+│                                   └──────────────────────────────┘  │
 │                    ▲                            ▲                    │
 │                    │  write (hourly)            │  write (midnight)  │
 │         air_pipeline_hourly          air_pipeline_daily              │
@@ -109,10 +112,32 @@ Air Quality Pipeline was made for learning and doing in my rest time. The purpos
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+## AQI Calculation
+
+AQI is derived from PM2.5 using Thailand's breakpoints (reference: [aqihub.info](https://aqihub.info/indices/thailand)):
+
+| PM2.5 (µg/m³) | AQI Range |
+| ------------- | --------- |
+| 0.0 – 15.0    | 0 – 25    |
+| 15.1 – 25.0   | 26 – 50   |
+| 25.1 – 37.5   | 51 – 100  |
+| 37.6 – 75.0   | 101 – 200 |
+| 75.1 – 150.0  | 201 – 300 |
+
 ## Getting Started
 
 1. Clone the repository
-2. Copy `assets/.env.example` to `assets/.env` and fill in your credentials
+2. Copy `assets/.env.example` to `assets/.env` and fill in your credentials:
+
+```env
+OPENWEATHER_API_KEY=
+LATITUDE=
+LONGITUDE=
+AIR4THAI_STATIONID=
+SUPABASE_URL=
+SUPABASE_KEY=
+```
+
 3. Run with Docker:
 
 ```bash
@@ -121,6 +146,17 @@ docker compose up
 
 4. Open Airflow UI at `http://localhost:8080`
 
+## Manual Trigger
+
+The daily DAG supports manual backfill via the `target_date` param (format: `YYYY-MM-DD`).
+Trigger from the Airflow UI or CLI:
+
+```bash
+airflow dags trigger air_pipeline_daily --conf '{"target_date": "2026-03-14"}'
+```
+
 ## AI Prediction
 
-After collecting 3 months of data, I will train models and display results with visualizations in this repository.
+After collecting sufficient data (~3 months), ML models will be trained to predict next-day PM2.5.
+Planned models: Random Forest, Decision Tree, Gradient Boosting.
+Results and visualizations will be published in this repository.
