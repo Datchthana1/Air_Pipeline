@@ -140,7 +140,7 @@ def insert_data(data: dict, table_name: str = "weather_data"):
 
 def process_daily_data(target_date: date | None = None):
     client = get_supabase_client()
-    target = target_date or (date.today())
+    target = target_date or (date.today() - timedelta(days=1))
     target_str = target.isoformat()
 
     response = (
@@ -179,10 +179,13 @@ def process_daily_data(target_date: date | None = None):
             "temp_min": "min",
             "temp_max": "max",
             "pm25": "mean",
-            "AQI": "mean",
             "area": lambda x: x.mode()[0] if not x.mode().empty else None,
             "station_name": lambda x: x.mode()[0] if not x.mode().empty else None,
         }
+    )
+
+    df_daily["AQI"] = df_daily["pm25"].apply(
+        lambda v: calculate_aqi_pm25(v) if v is not None and not pd.isna(v) else None
     )
 
     df_daily = df_daily.reset_index()
@@ -232,3 +235,23 @@ def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
     ]
     client.table(table_name).upsert(rows, on_conflict="datetime").execute()
     return {"status": "success", "rows_inserted": len(rows)}
+
+_PM25_BREAKPOINTS = [
+    (0.0,   12.0,   0,   50),
+    (12.1,  35.4,  51,  100),
+    (35.5,  55.4, 101,  150),
+    (55.5, 150.4, 151,  200),
+    (150.5, 250.4, 201, 300),
+    (250.5, 350.4, 301, 400),
+    (350.5, 500.4, 401, 500),
+]
+
+
+def calculate_aqi_pm25(pm25: float) -> int:
+    pm25 = round(pm25, 1)
+    for bp_lo, bp_hi, aqi_lo, aqi_hi in _PM25_BREAKPOINTS:
+        if bp_lo <= pm25 <= bp_hi:
+            return round((aqi_hi - aqi_lo) / (bp_hi - bp_lo) * (pm25 - bp_lo) + aqi_lo)
+    if pm25 > 500.4:
+        return 500
+    return 0
