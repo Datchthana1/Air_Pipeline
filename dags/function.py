@@ -253,4 +253,4 @@ def calculate_aqi_pm25(pm25: float) -> int:
     if pm25 > 500.4:
         return 500
     return 0
-        #Reference: https://www.ecfr.gov/current/title-40/chapter-I/subchapter-C/part-58/appendix-Appendix%20G%20to%20Part%2058
+        #Reference: https://aqihub.info/indices/thailand
