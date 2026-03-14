@@ -235,6 +235,11 @@ def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
             "created_at": datetime.now(ZoneInfo("Asia/Bangkok")).strftime(
                 "%Y-%m-%d %H:%M:%S.%f"
             ),
+            "day_of_week": (
+                r["datetime"].strftime("%A")
+                if hasattr(r["datetime"], "strftime")
+                else pd.to_datetime(r["datetime"]).strftime("%A")
+            ),
             "station_name": r["station_name"],
         }
         for r in records
