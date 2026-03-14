@@ -2,6 +2,7 @@ import requests as re
 import urllib3
 import os
 from supabase import create_client, Client
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
@@ -139,9 +140,12 @@ def insert_data(data: dict, table_name: str = "weather_data"):
 
 
 def process_daily_data(target_date: date | None = None):
+    if isinstance(target_date, str):
+        target_date = date.fromisoformat(target_date)
     client = get_supabase_client()
     target = target_date or (date.today() - timedelta(days=1))
     target_str = target.isoformat()
+    print(f"Processing data for date: {target_str}")
 
     response = (
         client.table("weather_data")
@@ -228,7 +232,9 @@ def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
             "pm25": to_float(r["pm25"]),
             "AQI": to_int(r["AQI"]),
             "area": r["area"],
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(ZoneInfo("Asia/Bangkok")).strftime(
+                "%Y-%m-%d %H:%M:%S.%f"
+            ),
             "station_name": r["station_name"],
         }
         for r in records
@@ -236,12 +242,13 @@ def insert_daily_data(records: list, table_name: str = "weather_data_daily"):
     client.table(table_name).upsert(rows, on_conflict="datetime").execute()
     return {"status": "success", "rows_inserted": len(rows)}
 
+
 _PM25_BREAKPOINTS = [
-    (0.0,   15.0,   0,   25),
-    (15.1,  25.0,  26,   50),
-    (25.1,  37.5,  51,  100),
-    (37.6,  75.0, 101,  200),
-    (75.1, 150.0, 201,  300),
+    (0.0, 15.0, 0, 25),
+    (15.1, 25.0, 26, 50),
+    (25.1, 37.5, 51, 100),
+    (37.6, 75.0, 101, 200),
+    (75.1, 150.0, 201, 300),
 ]
 
 
@@ -253,4 +260,4 @@ def calculate_aqi_pm25(pm25: float) -> int:
     if pm25 > 500.4:
         return 500
     return 0
-        #Reference: https://aqihub.info/indices/thailand
+    # Reference: https://aqihub.info/indices/thailand
