@@ -143,7 +143,7 @@ def process_daily_data(target_date: date | None = None):
     if isinstance(target_date, str):
         target_date = date.fromisoformat(target_date)
     client = get_supabase_client()
-    target = target_date or (date.today() - timedelta(days=1))
+    target = target_date or (datetime.now(ZoneInfo("Asia/Bangkok")).date() - timedelta(days=1))
     target_str = target.isoformat()
     print(f"Processing data for date: {target_str}")
 
